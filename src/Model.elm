@@ -1,4 +1,4 @@
-module Model exposing (Bolt, Coords, Dimensions, Model, init)
+module Model exposing (Arc(..), Bolt, Coords, Dimensions, Model, init)
 
 import Messages exposing (Message)
 import Point2d
@@ -24,7 +24,18 @@ type alias Flags =
 
 type alias Bolt =
     { origin : Coords
-    , length : Float
+    , lifeTime : Int
+    , arcs : List Arc
+    }
+
+
+type Arc
+    = Arc ArcInfo
+
+
+type alias ArcInfo =
+    { length : Float
+    , arcs : List Arc
     , angle : Float
     }
 

@@ -45,7 +45,7 @@ generateBolts seed model =
         [ makeNewBolt seed model ]
 
     else
-        model.bolts
+        List.filterMap (iterateBolt seed) model.bolts
 
 
 makeNewBolt : Random.Seed -> Model -> Bolt
@@ -61,9 +61,57 @@ makeNewBolt seed model =
             Random.step (Random.float 0 360) seed2
     in
     { origin = coords
-    , length = length
-    , angle = angle
+    , lifeTime = 1
+    , arcs =
+        [ Arc
+            { length = length
+            , angle = angle
+            , arcs = []
+            }
+        ]
     }
+
+
+iterateBolt : Random.Seed -> Bolt -> Maybe Bolt
+iterateBolt seed bolt =
+    let
+        shouldSurvive =
+            True
+    in
+    if shouldSurvive then
+        Just <|
+            { bolt
+                | lifeTime = bolt.lifeTime + 1
+                , arcs = List.map (iterateArc seed) bolt.arcs
+            }
+
+    else
+        Nothing
+
+
+iterateArc : Random.Seed -> Arc -> Arc
+iterateArc seed (Arc arc) =
+    if List.isEmpty arc.arcs then
+        let
+            ( length, seed1 ) =
+                Random.step arcLength seed
+
+            ( angle, seed2 ) =
+                Random.step (Random.float (arc.angle - 15) (arc.angle + 15)) seed1
+        in
+        Arc
+            { arc
+                | arcs =
+                    [ Arc
+                        { length = length
+                        , angle = angle
+                        , arcs = []
+                        }
+                    ]
+            }
+
+    else
+        Arc { arc | arcs = List.map (iterateArc seed) arc.arcs }
 
 
 randomScreenPos : Dimensions -> Random.Generator Coords

@@ -26,34 +26,41 @@ draw model =
             ]
             []
          ]
-            ++ List.map drawBolt model.bolts
+            ++ List.concat (List.map drawBolt model.bolts)
         )
     ]
 
 
-drawBolt : Bolt -> Svg Message
+drawBolt : Bolt -> List (Svg Message)
 drawBolt bolt =
+    List.concat (List.map (drawArc bolt.origin) bolt.arcs)
+
+
+drawArc : Coords -> Arc -> List (Svg Message)
+drawArc { x, y } (Arc arc) =
     let
         ( endX, endY ) =
             Arc2d.with
-                { centerPoint = Point2d.fromCoordinates ( bolt.origin.x, bolt.origin.y )
-                , radius = bolt.length
+                { centerPoint = Point2d.fromCoordinates ( x, y )
+                , radius = arc.length
                 , startAngle = 0
-                , sweptAngle = bolt.angle
+                , sweptAngle = arc.angle
                 }
                 |> Arc2d.endPoint
                 |> Point2d.coordinates
     in
-    line
-        [ x1 (bolt.origin.x |> px)
-        , y1 (bolt.origin.y |> px)
+    [ line
+        [ x1 (x |> px)
+        , y1 (y |> px)
         , x2 (endX |> px)
         , y2 (endY |> px)
-        , stroke boltColor
+        , stroke arcColor
         ]
         []
+    ]
+        ++ List.concat (List.map (drawArc { x = endX, y = endY }) arc.arcs)
 
 
-boltColor : Color
-boltColor =
+arcColor : Color
+arcColor =
     rgb 1 1 1
