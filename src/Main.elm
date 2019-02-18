@@ -1,8 +1,11 @@
 module Main exposing (main)
 
 import Browser
-import Messages exposing (Message)
-import Model exposing (Model)
+import Browser.Events exposing (onAnimationFrame)
+import Messages exposing (..)
+import Model exposing (..)
+import Random
+import Time exposing (posixToMillis)
 import View
 
 
@@ -25,9 +28,52 @@ main =
 
 update : Message -> Model -> ( Model, Cmd Message )
 update message model =
-    ( model, Cmd.none )
+    case message of
+        AnimationFrameTriggered time ->
+            let
+                seed0 =
+                    Random.initialSeed (posixToMillis time)
+            in
+            ( { model | bolts = generateBolts seed0 model }
+            , Cmd.none
+            )
+
+
+generateBolts : Random.Seed -> Model -> List Bolt
+generateBolts seed model =
+    if List.isEmpty model.bolts then
+        [ makeNewBolt seed model ]
+
+    else
+        model.bolts
+
+
+makeNewBolt : Random.Seed -> Model -> Bolt
+makeNewBolt seed model =
+    let
+        ( coords, seed1 ) =
+            Random.step (randomScreenPos model.window) seed
+
+        ( length, seed2 ) =
+            Random.step arcLength seed1
+    in
+    { origin = coords
+    , length = length
+    }
+
+
+randomScreenPos : Dimensions -> Random.Generator Coords
+randomScreenPos dims =
+    Random.map2 Coords
+        (Random.float 100 (dims.width - 100))
+        (Random.float 100 (dims.height - 100))
+
+
+arcLength : Random.Generator Float
+arcLength =
+    Random.float 2 10
 
 
 subscriptions : Model -> Sub Message
 subscriptions model =
-    Sub.none
+    onAnimationFrame AnimationFrameTriggered

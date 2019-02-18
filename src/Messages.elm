@@ -1,5 +1,7 @@
-module Messages exposing (Message)
+module Messages exposing (Message(..))
+
+import Time exposing (Posix)
 
 
 type Message
-    = Noop
+    = AnimationFrameTriggered Posix
