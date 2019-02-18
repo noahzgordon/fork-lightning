@@ -2,6 +2,7 @@ module Main exposing (main)
 
 import Browser
 import Browser.Events exposing (onAnimationFrame)
+import List.Extra as List
 import Messages exposing (..)
 import Model exposing (..)
 import Random
@@ -54,33 +55,46 @@ makeNewBolt seed model =
         ( coords, seed1 ) =
             Random.step (randomScreenPos model.window) seed
 
-        ( length, seed2 ) =
-            Random.step arcLength seed1
+        ( arcProb, seed2 ) =
+            Random.step probability seed
 
-        ( angle, seed3 ) =
-            Random.step (Random.float 0 360) seed2
+        arcNum =
+            if arcProb > 0.95 then
+                3
+
+            else if arcProb > 0.8 then
+                2
+
+            else
+                1
+
+        ( arcVals, seed3 ) =
+            Random.step
+                (Random.list arcNum (Random.pair arcLength (Random.float 0 360)))
+                seed2
     in
     { origin = coords
     , lifeTime = 1
     , arcs =
-        [ Arc
-            { length = length
-            , angle = angle
-            , arcs = []
-            }
-        ]
+        List.map
+            (\( length, angle ) ->
+                Arc
+                    { length = length
+                    , angle = angle
+                    , arcs = []
+                    }
+            )
+            arcVals
     }
 
 
 iterateBolt : Random.Seed -> Bolt -> Maybe Bolt
 iterateBolt seed bolt =
     let
-        ( shouldSurvive, seed1 ) =
-            Random.step
-                (Random.weighted ( 1, True ) [ ( toFloat bolt.lifeTime / 500, False ) ])
-                seed
+        ( survivalProb, seed1 ) =
+            Random.step probability seed
     in
-    if shouldSurvive then
+    if (survivalProb / toFloat bolt.lifeTime) >= 0.001 then
         Just <|
             { bolt
                 | lifeTime = bolt.lifeTime + 1
@@ -126,6 +140,11 @@ randomScreenPos dims =
 arcLength : Random.Generator Float
 arcLength =
     Random.float 4 20
+
+
+probability : Random.Generator Float
+probability =
+    Random.float 0 1
 
 
 subscriptions : Model -> Sub Message
