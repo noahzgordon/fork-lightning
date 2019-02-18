@@ -56,9 +56,13 @@ makeNewBolt seed model =
 
         ( length, seed2 ) =
             Random.step arcLength seed1
+
+        ( angle, seed3 ) =
+            Random.step (Random.float 0 360) seed2
     in
     { origin = coords
     , length = length
+    , angle = angle
     }
 
 

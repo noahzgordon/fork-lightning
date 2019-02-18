@@ -39,7 +39,7 @@ drawBolt bolt =
                 { centerPoint = Point2d.fromCoordinates ( bolt.origin.x, bolt.origin.y )
                 , radius = bolt.length
                 , startAngle = 0
-                , sweptAngle = 45
+                , sweptAngle = bolt.angle
                 }
                 |> Arc2d.endPoint
                 |> Point2d.coordinates

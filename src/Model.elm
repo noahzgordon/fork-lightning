@@ -25,6 +25,7 @@ type alias Flags =
 type alias Bolt =
     { origin : Coords
     , length : Float
+    , angle : Float
     }
 
 
