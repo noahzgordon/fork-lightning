@@ -95,10 +95,18 @@ iterateBolt seed bolt =
             Random.step probability seed
     in
     if (survivalProb / toFloat bolt.lifeTime) >= 0.001 then
+        let
+            ( seeds, _ ) =
+                Random.step
+                    (Random.list (List.length bolt.arcs) Random.independentSeed)
+                    seed1
+        in
         Just <|
             { bolt
                 | lifeTime = bolt.lifeTime + 1
-                , arcs = List.map (iterateArc seed1) bolt.arcs
+                , arcs =
+                    List.zip bolt.arcs seeds
+                        |> List.map (\( arc, newSeed ) -> iterateArc newSeed arc)
             }
 
     else
