@@ -75,14 +75,16 @@ makeNewBolt seed model =
 iterateBolt : Random.Seed -> Bolt -> Maybe Bolt
 iterateBolt seed bolt =
     let
-        shouldSurvive =
-            True
+        ( shouldSurvive, seed1 ) =
+            Random.step
+                (Random.weighted ( 1, True ) [ ( toFloat bolt.lifeTime / 500, False ) ])
+                seed
     in
     if shouldSurvive then
         Just <|
             { bolt
                 | lifeTime = bolt.lifeTime + 1
-                , arcs = List.map (iterateArc seed) bolt.arcs
+                , arcs = List.map (iterateArc seed1) bolt.arcs
             }
 
     else
@@ -97,7 +99,7 @@ iterateArc seed (Arc arc) =
                 Random.step arcLength seed
 
             ( angle, seed2 ) =
-                Random.step (Random.float (arc.angle - 15) (arc.angle + 15)) seed1
+                Random.step (Random.float (arc.angle - 1) (arc.angle + 1)) seed1
         in
         Arc
             { arc
@@ -123,7 +125,7 @@ randomScreenPos dims =
 
 arcLength : Random.Generator Float
 arcLength =
-    Random.float 2 10
+    Random.float 4 20
 
 
 subscriptions : Model -> Sub Message
