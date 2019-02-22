@@ -1,7 +1,7 @@
 module Model exposing (Arc(..), Bolt, Coords, Dimensions, Model, init)
 
 import Messages exposing (Message)
-import Point2d
+import Random
 
 
 type alias Model =
@@ -25,6 +25,7 @@ type alias Flags =
 type alias Bolt =
     { origin : Coords
     , lifeTime : Int
+    , seed : Random.Seed
     , arcs : List Arc
     }
 

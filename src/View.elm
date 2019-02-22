@@ -5,7 +5,7 @@ import Color exposing (Color, rgb)
 import Html exposing (Html)
 import Messages exposing (Message)
 import Model exposing (..)
-import Point2d
+import Point2d as Point
 import TypedSvg exposing (..)
 import TypedSvg.Attributes as Attributes exposing (..)
 import TypedSvg.Core exposing (..)
@@ -41,13 +41,13 @@ drawArc { x, y } (Arc arc) =
     let
         ( endX, endY ) =
             Arc2d.with
-                { centerPoint = Point2d.fromCoordinates ( x, y )
+                { centerPoint = Point.fromCoordinates ( x, y )
                 , radius = arc.length
                 , startAngle = 0
                 , sweptAngle = arc.angle
                 }
                 |> Arc2d.endPoint
-                |> Point2d.coordinates
+                |> Point.coordinates
     in
     [ line
         [ x1 (x |> px)

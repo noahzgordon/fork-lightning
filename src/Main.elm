@@ -2,10 +2,13 @@ module Main exposing (main)
 
 import Browser
 import Browser.Events exposing (onAnimationFrame)
+import Circle2d as Circle
 import List.Extra as List
 import Messages exposing (..)
 import Model exposing (..)
+import Point2d as Point
 import Random
+import Random.Extra as Random
 import Time exposing (posixToMillis)
 import View
 
@@ -43,19 +46,47 @@ update message model =
 generateBolts : Random.Seed -> Model -> List Bolt
 generateBolts seed model =
     if List.isEmpty model.bolts then
-        [ makeNewBolt seed model ]
+        let
+            ( boltPos, seed1 ) =
+                Random.step (randomScreenPos model.window) seed
+        in
+        [ makeNewBolt seed1 boltPos ]
 
     else
-        List.filterMap (iterateBolt seed) model.bolts
+        let
+            ( newBoltProb, seed1 ) =
+                Random.step probability seed
+
+            boltNum =
+                if newBoltProb > 0.99 then
+                    1
+
+                else
+                    0
+
+            currentBoltPositions =
+                List.map .origin model.bolts
+
+            ( newBoltVars, seed2 ) =
+                Random.step
+                    (Random.list boltNum
+                        (Random.pair
+                            Random.independentSeed
+                            (randomScreenPosWithoutOverlap model.window currentBoltPositions 300)
+                        )
+                    )
+                    seed1
+
+            newBolts =
+                List.map (\( newSeed, pos ) -> makeNewBolt newSeed pos) newBoltVars
+        in
+        List.filterMap iterateBolt (model.bolts ++ newBolts)
 
 
-makeNewBolt : Random.Seed -> Model -> Bolt
-makeNewBolt seed model =
+makeNewBolt : Random.Seed -> Coords -> Bolt
+makeNewBolt seed coords =
     let
-        ( coords, seed1 ) =
-            Random.step (randomScreenPos model.window) seed
-
-        ( arcProb, seed2 ) =
+        ( arcProb, seed1 ) =
             Random.step probability seed
 
         arcNum =
@@ -68,13 +99,14 @@ makeNewBolt seed model =
             else
                 1
 
-        ( arcVals, seed3 ) =
+        ( arcVals, seed2 ) =
             Random.step
                 (Random.list arcNum (Random.pair arcLength (Random.float 0 360)))
-                seed2
+                seed1
     in
     { origin = coords
     , lifeTime = 1
+    , seed = seed2
     , arcs =
         List.map
             (\( length, angle ) ->
@@ -89,13 +121,13 @@ makeNewBolt seed model =
     }
 
 
-iterateBolt : Random.Seed -> Bolt -> Maybe Bolt
-iterateBolt seed bolt =
+iterateBolt : Bolt -> Maybe Bolt
+iterateBolt bolt =
     let
         ( survivalProb, seed1 ) =
-            Random.step probability seed
+            Random.step probability bolt.seed
     in
-    if (survivalProb / toFloat bolt.lifeTime) >= 0.001 then
+    if bolt.lifeTime < 30 || (survivalProb / toFloat bolt.lifeTime) >= 0.05 then
         let
             ( seeds, _ ) =
                 Random.step
@@ -177,6 +209,22 @@ randomScreenPos dims =
     Random.map2 Coords
         (Random.float 100 (dims.width - 100))
         (Random.float 100 (dims.height - 100))
+
+
+randomScreenPosWithoutOverlap : Dimensions -> List Coords -> Float -> Random.Generator Coords
+randomScreenPosWithoutOverlap dims points distance =
+    randomScreenPos dims
+        |> Random.filter
+            (\point ->
+                not <|
+                    List.any
+                        (\{ x, y } ->
+                            Circle.contains
+                                (Point.fromCoordinates ( point.x, point.y ))
+                                (Circle.withRadius distance <| Point.fromCoordinates ( x, y ))
+                        )
+                        points
+            )
 
 
 arcLength : Random.Generator Float
