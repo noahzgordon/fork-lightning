@@ -37,6 +37,7 @@ type alias ArcInfo =
     { length : Float
     , arcs : List Arc
     , angle : Float
+    , origAngle : Float
     }
 
 

@@ -81,6 +81,7 @@ makeNewBolt seed model =
                 Arc
                     { length = length
                     , angle = angle
+                    , origAngle = angle
                     , arcs = []
                     }
             )
@@ -129,7 +130,7 @@ iterateArc seed (Arc arc) =
 
             ( arcVals, seed2 ) =
                 Random.step
-                    (Random.list arcNum (Random.pair arcLength (Random.float (arc.angle - 1) (arc.angle + 1))))
+                    (Random.list arcNum (Random.pair arcLength (Random.float (arc.angle - 1.5) (arc.angle + 1.5))))
                     seed1
         in
         Arc
@@ -137,11 +138,21 @@ iterateArc seed (Arc arc) =
                 | arcs =
                     List.map
                         (\( length, angle ) ->
-                            Arc
-                                { length = length
-                                , angle = angle
-                                , arcs = []
-                                }
+                            if arcNum == 1 then
+                                Arc
+                                    { length = length
+                                    , angle = angle + ((arc.origAngle - angle) / 3)
+                                    , origAngle = arc.origAngle
+                                    , arcs = []
+                                    }
+
+                            else
+                                Arc
+                                    { length = length
+                                    , angle = angle
+                                    , origAngle = angle
+                                    , arcs = []
+                                    }
                         )
                         arcVals
             }
@@ -170,7 +181,7 @@ randomScreenPos dims =
 
 arcLength : Random.Generator Float
 arcLength =
-    Random.float 4 20
+    Random.float 4 15
 
 
 probability : Random.Generator Float
