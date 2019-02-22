@@ -1,66 +1,59 @@
 module View exposing (draw)
 
-import Arc2d
-import Color exposing (Color, rgb)
+import EffectView
+import Element exposing (..)
+import Element.Background as Background
+import Element.Border as Border
+import Element.Input as Input
 import Html exposing (Html)
-import Messages exposing (Message)
-import Model exposing (..)
-import Point2d as Point
-import TypedSvg exposing (..)
-import TypedSvg.Attributes as Attributes exposing (..)
-import TypedSvg.Core exposing (..)
-import TypedSvg.Types exposing (..)
+import Messages exposing (..)
+import Model exposing (Model)
+
+
+mods =
+    [ ( Fremulation, "fremulation", .fremulation )
+    , ( Chaos, "chaos quotient", .chaos )
+    , ( Dilation, "time dilation", .dilation )
+    , ( Zoom, "zoominess", .zoom )
+    ]
 
 
 draw : Model -> List (Html Message)
 draw model =
-    [ svg
-        [ width (model.window.width |> px)
-        , height (model.window.height |> px)
-        , Attributes.style "position: absolute; top: 0; left: 0;"
-        ]
-        ([ rect
-            [ width (100 |> percent)
-            , height (100 |> percent)
-            , fill (rgb 0 0 0 |> Fill)
+    [ layout [ width fill, height fill ] <|
+        row [ width fill, height fill ]
+            [ column [ width (px 200), height fill, spacing 50, padding 50 ] <|
+                List.map (modSlider model) mods
+            , el [ width fill, height fill ] <|
+                html (EffectView.draw model)
             ]
-            []
-         ]
-            ++ List.concat (List.map drawBolt model.bolts)
-        )
     ]
 
 
-drawBolt : Bolt -> List (Svg Message)
-drawBolt bolt =
-    List.concat (List.map (drawArc bolt.origin) bolt.arcs)
-
-
-drawArc : Coords -> Arc -> List (Svg Message)
-drawArc { x, y } (Arc arc) =
-    let
-        ( endX, endY ) =
-            Arc2d.with
-                { centerPoint = Point.fromCoordinates ( x, y )
-                , radius = arc.length
-                , startAngle = 0
-                , sweptAngle = arc.angle
-                }
-                |> Arc2d.endPoint
-                |> Point.coordinates
-    in
-    [ line
-        [ x1 (x |> px)
-        , y1 (y |> px)
-        , x2 (endX |> px)
-        , y2 (endY |> px)
-        , stroke arcColor
+modSlider model ( modifier, label, prop ) =
+    el
+        [ height (px 50)
+        , width (px 150)
+        , centerX
         ]
-        []
-    ]
-        ++ List.concat (List.map (drawArc { x = endX, y = endY }) arc.arcs)
-
-
-arcColor : Color
-arcColor =
-    rgb 1 1 1
+    <|
+        Input.slider
+            [ Element.behindContent
+                (Element.el
+                    [ Element.width Element.fill
+                    , Element.height (Element.px 2)
+                    , Element.centerY
+                    , Background.color (rgb 0.5 0.5 0.5)
+                    , Border.rounded 2
+                    ]
+                    Element.none
+                )
+            ]
+            { onChange = ModifierChanged modifier
+            , label = Input.labelAbove [] (text label)
+            , min = 0
+            , max = 1
+            , value = prop model
+            , thumb = Input.defaultThumb
+            , step = Just 0.01
+            }

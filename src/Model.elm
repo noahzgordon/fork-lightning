@@ -7,6 +7,10 @@ import Random
 type alias Model =
     { window : Dimensions
     , bolts : List Bolt
+    , fremulation : Float
+    , chaos : Float
+    , dilation : Float
+    , zoom : Float
     }
 
 
@@ -46,6 +50,10 @@ init : Flags -> ( Model, Cmd Message )
 init flags =
     ( { window = flags.window
       , bolts = []
+      , fremulation = 0.5
+      , chaos = 0.5
+      , dilation = 0.5
+      , zoom = 0.5
       }
     , Cmd.none
     )

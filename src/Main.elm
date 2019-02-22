@@ -42,6 +42,22 @@ update message model =
             , Cmd.none
             )
 
+        ModifierChanged mod val ->
+            ( case mod of
+                Fremulation ->
+                    { model | fremulation = val }
+
+                Chaos ->
+                    { model | chaos = val }
+
+                Dilation ->
+                    { model | dilation = val }
+
+                Zoom ->
+                    { model | zoom = val }
+            , Cmd.none
+            )
+
 
 generateBolts : Random.Seed -> Model -> List Bolt
 generateBolts seed model =
@@ -50,15 +66,21 @@ generateBolts seed model =
             ( boltPos, seed1 ) =
                 Random.step (randomScreenPos model.window) seed
         in
-        [ makeNewBolt seed1 boltPos ]
+        [ makeNewBolt model seed1 boltPos ]
 
     else
         let
-            ( newBoltProb, seed1 ) =
+            ( rawNewBoltProb, seed1 ) =
                 Random.step probability seed
 
+            newBoltProb =
+                rawNewBoltProb * model.chaos * 2
+
             boltNum =
-                if newBoltProb > 0.99 then
+                if List.length model.bolts > 5 then
+                    0
+
+                else if newBoltProb > 0.99 then
                     1
 
                 else
@@ -78,16 +100,19 @@ generateBolts seed model =
                     seed1
 
             newBolts =
-                List.map (\( newSeed, pos ) -> makeNewBolt newSeed pos) newBoltVars
+                List.map (\( newSeed, pos ) -> makeNewBolt model newSeed pos) newBoltVars
         in
-        List.filterMap iterateBolt (model.bolts ++ newBolts)
+        List.filterMap (iterateBolt model) (model.bolts ++ newBolts)
 
 
-makeNewBolt : Random.Seed -> Coords -> Bolt
-makeNewBolt seed coords =
+makeNewBolt : Model -> Random.Seed -> Coords -> Bolt
+makeNewBolt model seed coords =
     let
-        ( arcProb, seed1 ) =
+        ( arcProbRaw, seed1 ) =
             Random.step probability seed
+
+        arcProb =
+            arcProbRaw * model.chaos * 2
 
         arcNum =
             if arcProb > 0.95 then
@@ -101,7 +126,7 @@ makeNewBolt seed coords =
 
         ( arcVals, seed2 ) =
             Random.step
-                (Random.list arcNum (Random.pair arcLength (Random.float 0 360)))
+                (Random.list arcNum (Random.pair (arcLength model) (Random.float 0 360)))
                 seed1
     in
     { origin = coords
@@ -121,13 +146,13 @@ makeNewBolt seed coords =
     }
 
 
-iterateBolt : Bolt -> Maybe Bolt
-iterateBolt bolt =
+iterateBolt : Model -> Bolt -> Maybe Bolt
+iterateBolt model bolt =
     let
         ( survivalProb, seed1 ) =
             Random.step probability bolt.seed
     in
-    if bolt.lifeTime < 30 || (survivalProb / toFloat bolt.lifeTime) >= 0.05 then
+    if bolt.lifeTime < round (60 * model.dilation) || (survivalProb * model.dilation / toFloat bolt.lifeTime) >= 0.1 then
         let
             ( seeds, _ ) =
                 Random.step
@@ -139,19 +164,22 @@ iterateBolt bolt =
                 | lifeTime = bolt.lifeTime + 1
                 , arcs =
                     List.zip bolt.arcs seeds
-                        |> List.map (\( arc, newSeed ) -> iterateArc newSeed arc)
+                        |> List.map (\( arc, newSeed ) -> iterateArc model newSeed arc)
             }
 
     else
         Nothing
 
 
-iterateArc : Random.Seed -> Arc -> Arc
-iterateArc seed (Arc arc) =
+iterateArc : Model -> Random.Seed -> Arc -> Arc
+iterateArc model seed (Arc arc) =
     if List.isEmpty arc.arcs then
         let
-            ( arcProb, seed1 ) =
+            ( rawArcProb, seed1 ) =
                 Random.step probability seed
+
+            arcProb =
+                rawArcProb * model.fremulation * (11 / 10)
 
             arcNum =
                 if arcProb > 0.99 then
@@ -162,7 +190,7 @@ iterateArc seed (Arc arc) =
 
             ( arcVals, seed2 ) =
                 Random.step
-                    (Random.list arcNum (Random.pair arcLength (Random.float (arc.angle - 1.5) (arc.angle + 1.5))))
+                    (Random.list arcNum (Random.pair (arcLength model) (Random.float (arc.angle - 1.5) (arc.angle + 1.5))))
                     seed1
         in
         Arc
@@ -200,14 +228,14 @@ iterateArc seed (Arc arc) =
             { arc
                 | arcs =
                     List.zip arc.arcs seeds
-                        |> List.map (\( subArc, newSeed ) -> iterateArc newSeed subArc)
+                        |> List.map (\( subArc, newSeed ) -> iterateArc model newSeed subArc)
             }
 
 
 randomScreenPos : Dimensions -> Random.Generator Coords
 randomScreenPos dims =
     Random.map2 Coords
-        (Random.float 100 (dims.width - 100))
+        (Random.float 100 (dims.width - 300))
         (Random.float 100 (dims.height - 100))
 
 
@@ -227,9 +255,9 @@ randomScreenPosWithoutOverlap dims points distance =
             )
 
 
-arcLength : Random.Generator Float
-arcLength =
-    Random.float 4 15
+arcLength : Model -> Random.Generator Float
+arcLength model =
+    Random.float (8 * model.zoom + 1) (30 * model.zoom + 2)
 
 
 probability : Random.Generator Float

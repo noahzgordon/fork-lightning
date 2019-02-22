@@ -15,7 +15,8 @@
             "elm-community/list-extra": "8.1.0",
             "elm-community/random-extra": "3.0.0",
             "elm-community/typed-svg": "5.0.1",
-            "ianmackenzie/elm-geometry": "1.2.1"
+            "ianmackenzie/elm-geometry": "1.2.1",
+            "mdgriffith/elm-ui": "1.1.0"
         },
         "indirect": {
             "elm/json": "1.1.3",
