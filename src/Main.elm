@@ -117,25 +117,48 @@ iterateArc : Random.Seed -> Arc -> Arc
 iterateArc seed (Arc arc) =
     if List.isEmpty arc.arcs then
         let
-            ( length, seed1 ) =
-                Random.step arcLength seed
+            ( arcProb, seed1 ) =
+                Random.step probability seed
 
-            ( angle, seed2 ) =
-                Random.step (Random.float (arc.angle - 1) (arc.angle + 1)) seed1
+            arcNum =
+                if arcProb > 0.99 then
+                    2
+
+                else
+                    1
+
+            ( arcVals, seed2 ) =
+                Random.step
+                    (Random.list arcNum (Random.pair arcLength (Random.float (arc.angle - 1) (arc.angle + 1))))
+                    seed1
         in
         Arc
             { arc
                 | arcs =
-                    [ Arc
-                        { length = length
-                        , angle = angle
-                        , arcs = []
-                        }
-                    ]
+                    List.map
+                        (\( length, angle ) ->
+                            Arc
+                                { length = length
+                                , angle = angle
+                                , arcs = []
+                                }
+                        )
+                        arcVals
             }
 
     else
-        Arc { arc | arcs = List.map (iterateArc seed) arc.arcs }
+        let
+            ( seeds, _ ) =
+                Random.step
+                    (Random.list (List.length arc.arcs) Random.independentSeed)
+                    seed
+        in
+        Arc
+            { arc
+                | arcs =
+                    List.zip arc.arcs seeds
+                        |> List.map (\( subArc, newSeed ) -> iterateArc newSeed subArc)
+            }
 
 
 randomScreenPos : Dimensions -> Random.Generator Coords
